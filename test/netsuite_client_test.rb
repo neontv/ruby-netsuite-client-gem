@@ -6,12 +6,12 @@ class NetsuiteClientClient < Test::Unit::TestCase
   def setup
     ENV['NS_ENDPOINT_URL'] ||= NetSuite::SOAP::NetSuitePortType::DefaultEndpointUrl.sub(/webservices/, "webservices.sandbox")
 
-    unless ENV['NS_ACCOUNT_ID'] && ENV['NS_EMAIL'] && ENV['NS_PASSWORD'] 
+    unless ENV['NS_ACCOUNT_ID'] && ENV['NS_EMAIL'] && ENV['NS_PASSWORD']
       puts "Ensure that all your environment variables are set: NS_ACCOUNT_ID, NS_EMAIL, NS_PASSWORD"
       exit(-1)
     end
 
-    @client = NetsuiteClient.new(:account_id => ENV['NS_ACCOUNT_ID'], :email => ENV['NS_EMAIL'], :password => ENV['NS_PASSWORD'], :role => ENV['NS_ROLE'], :endpoint_url => ENV['NS_ENDPOINT_URL'])
+    @client = NetsuiteClient.new(:account_id => ENV['NS_ACCOUNT_ID'], :email => ENV['NS_EMAIL'], :password => ENV['NS_PASSWORD'], :endpoint_url => ENV['NS_ENDPOINT_URL'])
     # @client.debug = true
   end
 
@@ -64,6 +64,15 @@ class NetsuiteClientClient < Test::Unit::TestCase
     assert res.success?
   end
 
+  def test_add_customer_list
+    customer1 = Customer.new
+    customer1.companyName = "Test1 Inc."
+    customer2 = Customer.new
+    customer2.companyName = "Test2 Inc."
+    res = @client.add_list([customer1, customer2])
+    assert res.success?
+  end
+
   def test_delete_customer
     item = @client.find_by('CustomerSearchBasic', 'companyName', 'Test Inc.')[0]
     assert_not_nil item
@@ -105,14 +114,14 @@ class NetsuiteClientClient < Test::Unit::TestCase
 #
 #    item = @client.find_by('ItemSearchBasic', 'itemId', 'test inventory item')[0]
 #    assert item.displayName != new_name
-#    
+#
 #    ref = InventoryItem.new
 #    ref.xmlattr_internalId = item.xmlattr_internalId
 #    ref.displayName = new_name
 #    res = @client.update(ref)
 #    assert_not_nil res
 #    assert res.success?
-#    
+#
 #    item = @client.find_by('ItemSearchBasic', 'itemId', 'test inventory item')[0]
 #    assert item.displayName == new_name
 #  end
