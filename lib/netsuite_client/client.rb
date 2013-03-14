@@ -43,7 +43,7 @@ class NetsuiteClient
     end
 
     @driver.headerhandler.add(PassportHeaderHandler.new(:email => @config[:email], :password => @config[:password], :account => @config[:account_id], :role => role))
-    @driver.headerhandler.add(PreferencesHeaderHandler.new)      
+    @driver.headerhandler.add(PreferencesHeaderHandler.new)
     @driver.headerhandler.add(SearchPreferencesHeaderHandler.new)
   end
 
@@ -112,6 +112,11 @@ class NetsuiteClient
   def add(ref)
     res = @driver.add(AddRequest.new(ref))
     NetsuiteResult.new(res.writeResponse)
+  end
+
+  def add_list(list)
+    res = @driver.addList(AddListRequest.new(list))
+    NetsuiteResultList.new(res.writeResponseList)
   end
 
   def update(ref)
