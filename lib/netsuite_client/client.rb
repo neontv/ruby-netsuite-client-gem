@@ -134,6 +134,11 @@ class NetsuiteClient
     NetsuiteResult.new(res.writeResponse)
   end
 
+  def upsert_list(list)
+    res = @driver.upsertList(UpsertListRequest.new(list))
+    NetsuiteResultList.new(res.writeResponseList)
+  end
+
   def delete(ref)
     r = RecordRef.new
     r.xmlattr_type = ref.class.to_s.split('::').last.sub(/^(\w)/) {|s|$1.downcase}
