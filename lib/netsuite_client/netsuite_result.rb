@@ -1,18 +1,13 @@
-class NetsuiteResult
-  attr_accessor :response
+module NetSuite
 
-  def initialize(response)
-    @response = response
-  end
-
+class Result < Struct.new(:response)
   def success?
     response.status.xmlattr_isSuccess
   end
 
-  def base_id
+  def internal_id
     response.baseRef.xmlattr_internalId.to_i rescue nil
   end
-  alias :internal_id :base_id
 
   def external_id
     response.baseRef.xmlattr_externalId rescue nil
@@ -25,4 +20,6 @@ class NetsuiteResult
   def error_code
     response.status.statusDetail[0].code if !success?
   end
+end
+
 end

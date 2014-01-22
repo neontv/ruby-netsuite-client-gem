@@ -1,2 +1,6 @@
-class NetsuiteException < StandardError
+module NetSuite
+
+class Exception < StandardError
+end
+
 end

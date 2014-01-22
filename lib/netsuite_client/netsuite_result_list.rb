@@ -1,5 +1,9 @@
-class NetsuiteResultList < ::Array
+module NetSuite
+
+class ResultList < ::Array
   def initialize(list)
-    list.each { |res| self << NetsuiteResult.new(res) }
+    list.each { |res| self << Result.new(res) }
   end
+end
+
 end

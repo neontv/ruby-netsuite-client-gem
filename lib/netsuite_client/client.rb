@@ -2,10 +2,14 @@ require 'logger'
 require 'net/http'
 require 'net/https'
 
-class NetsuiteClient
-  include NetSuite::SOAP
+module NetSuite
 
-  class NetsuiteHeader < SOAP::Header::SimpleHandler
+class Client
+  include SOAP
+
+  attr_reader :driver
+
+  class NetsuiteHeader < ::SOAP::Header::SimpleHandler
     def initialize(prefs = {})
       @prefs = self.class::DefaultPrefs.merge(prefs)
       super(XSD::QName.new(nil, self.class::Name))
@@ -31,225 +35,135 @@ class NetsuiteClient
     DefaultPrefs = {:account => '', :email => '', :password => ''}
   end
 
-  attr_accessor :logger
+  attr_reader :logger
+
+  def logger
+    @logger ||= Logger.new(STDOUT)
+  end
 
   def initialize(config = {})
-    @config = config
+    @driver = NetSuitePortType.new(config[:endpoint_url] || NetSuitePortType::DefaultEndpointUrl)
 
-    @driver = NetSuitePortType.new(@config[:endpoint_url] || NetSuitePortType::DefaultEndpointUrl)
-
-    if @config[:role]
+    if config[:role]
       role = {:xmlattr_internalId => config[:role]}
     end
 
-    @driver.headerhandler.add(PassportHeaderHandler.new(:email => @config[:email], :password => @config[:password], :account => @config[:account_id], :role => role))
+    @driver.headerhandler.add(PassportHeaderHandler.new(
+      email: config[:email],
+      password: config[:password],
+      account: config[:account_id],
+      role: role
+    ))
     @driver.headerhandler.add(PreferencesHeaderHandler.new)
     @driver.headerhandler.add(SearchPreferencesHeaderHandler.new)
   end
 
-  def debug=(value)
-    @driver.wiredump_dev = value == true ? $stderr : nil
-  end
-
-  def find_by_internal_id(klass, id)
-    find_by_internal_ids(klass, [id])[0]
+  def debug=(debug)
+    @driver.wiredump_dev = $stderr if debug
   end
 
   def find_by_internal_ids(klass, ids)
-    basic = constantize(klass).new
+    basic = klass.new
+
     basic.internalId = SearchMultiSelectField.new
     basic.internalId.xmlattr_operator = SearchMultiSelectFieldOperator::AnyOf
-
-    records = []
-    ids.each do |id|
+    basic.internalId.searchValue = ids.map do |id|
       record = RecordRef.new
       record.xmlattr_internalId = id
-      records << record
+      record
     end
 
-    basic.internalId.searchValue = records
-
     full_basic_search(basic)
+  end
+
+  # Low level commands
+  def get(ref)
+    @driver.get(GetRequest.new(ref))
+  end
+
+  def get_all(refs)
+    @driver.getList(GetListRequest.new(refs))
+  end
+
+  def get_all_records(record_type)
+    ref = GetAllRecord.new
+    ref.xmlattr_recordType = record_type
+    get_all(ref)
+  end
+
+  def get_all(ref)
+    @driver.getAll(GetAllRequest.new(ref))
+  end
+
+  def add(record)
+    @driver.add(AddRequest.new(record))
   end
 
   # Only supports equality for integers and strings for now.
   def find_by(klass, name, value)
-    basic = constantize(klass).new
+    basic = klass.new
 
-    ref = nil
-    case value.class.to_s
-    when 'Fixnum'
-      ref = basic.send("#{name}=".to_sym, SearchLongField.new)
-      ref.xmlattr_operator = SearchLongFieldOperator::EqualTo
-
+    if value.is_a?(Fixnum)
+      @ref = basic.send("#{name}=".to_sym, SearchLongField.new)
+      @ref.xmlattr_operator = SearchLongFieldOperator::EqualTo
     else
-      ref = basic.send("#{name}=".to_sym, SearchStringField.new)
-      ref.xmlattr_operator = SearchStringFieldOperator::Is
+      @ref = basic.send("#{name}=".to_sym, SearchStringField.new)
+      @ref.xmlattr_operator = SearchStringFieldOperator::Is
     end
 
-    ref.searchValue = value
+    @ref.searchValue = value
 
     full_basic_search(basic)
   end
 
-  def get(klass, id)
-    ref = RecordRef.new
-    ref.xmlattr_type = constantize(klass)
-    ref.xmlattr_internalId = id
-
-    res = @driver.get(GetRequest.new(ref))
-    res && res.readResponse.status.xmlattr_isSuccess ? res.readResponse.record : nil
-  end
-
-  def get_all(klass)
-    ref = GetAllRecord.new
-    ref.xmlattr_recordType = constantize(klass)
-
-    res = @driver.getAll(GetAllRequest.new(ref))
-    res && res.getAllResult.status.xmlattr_isSuccess ? res.getAllResult.recordList : []
-  end
-
-  def add(ref)
-    res = @driver.add(AddRequest.new(ref))
-    NetsuiteResult.new(res.writeResponse)
-  end
-
   def add_list(list)
-    res = @driver.addList(AddListRequest.new(list))
-    NetsuiteResultList.new(res.writeResponseList)
+    @driver.addList(AddListRequest.new(list)).writeResponseList
   end
 
   def update(ref)
-    res = @driver.update(UpdateRequest.new(ref))
-    NetsuiteResult.new(res.writeResponse)
+    @driver.update(UpdateRequest.new(ref)).writeResponse
   end
 
-  def update_list(list)
-    res = @driver.updateList(UpdateListRequest.new(list))
-    NetsuiteResultList.new(res.writeResponseList)
+  def update_list(refs)
+    @driver.updateList(UpdateListRequest.new(refs)).writeResponseList
   end
 
   def upsert(record)
-    res = @driver.upsert(UpsertRequest.new(record))
-    NetsuiteResult.new(res.writeResponse)
+    @driver.upsert(UpsertRequest.new(record)).writeResponse
   end
 
-  def upsert_list(list)
-    res = @driver.upsertList(UpsertListRequest.new(list))
-    NetsuiteResultList.new(res.writeResponseList)
+  def upsert_list(refs)
+    @driver.upsertList(UpsertListRequest.new(refs)).writeResponseList
+  end
+
+  def typify(record)
+    record.class.to_s.split('::').last.sub(/^(\w)/) {|s|$1.downcase}
   end
 
   def delete(ref)
-    r = RecordRef.new
-    r.xmlattr_type = ref.class.to_s.split('::').last.sub(/^(\w)/) {|s|$1.downcase}
-    r.xmlattr_internalId = ref.xmlattr_internalId
-
-    res = @driver.delete(DeleteRequest.new(r))
-    NetsuiteResult.new(res.writeResponse)
+    @driver.delete(DeleteRequest.new(ref))
   end
 
-  def get_select_value(klass, field)
-    fieldDescription = GetSelectValueFieldDescription.new
-    fieldDescription.recordType = constantize(klass)
-    fieldDescription.field = field
-    res = @driver.getSelectValue(:fieldDescription => fieldDescription, :pageIndex => 1).getSelectValueResult
-    res.status.xmlattr_isSuccess ? res.baseRefList : nil
+  def delete_list(refs)
+    res = @driver.deleteList(DeleteListRequest.new(refs))
+    res.writeResponseList
   end
 
-  def get_customization_id(type, include_inactives = false)
-    request = GetCustomizationIdRequest.new
-    request.customizationType = type
-    request.includeInactives  = include_inactives
-
-    res = @driver.getCustomizationId(request)
-
-    NetsuiteResult.new(res.getCustomizationIdResult)
+  def search(search_record)
+    @driver.search(SearchRequest.new(search_record))
   end
 
-  # Get the full result set (possibly across multiple pages).
-  def full_basic_search(basic)
-    records, res = exec_basic_search(basic)
-
-    fetch_remaining_records!(records, res)
-
-    records
+  def search_next(search_response, page_index = search.page_index + 1)
+    @driver.searchMoreWithId(
+      searchId: search_response.id,
+      pageIndex: page_index
+    )
   end
 
-  def full_advanced_search(advanced)
-    records, res = exec_advanced_search(advanced)
-
-    fetch_remaining_records!(records, res)
-
-    records
+  def search_all(search_record)
+    search(search_record) +
+      (@res.searchResult.totalPages-1).times.map { |page_index| search_next }
   end
+end
 
-  private
-
-  def exec_search(type, search_object)
-    exec_with_retry do
-      search = constantize(search_object.class.to_s.sub(/#{type}/, '')).new
-      search.basic = search_object
-
-      res = @driver.search(search)
-      return res.searchResult.recordList, res.searchResult
-    end
-  end
-
-  # Get the first page of search results for basic search.
-  def exec_basic_search(search)
-    exec_search('Basic', search)
-  end
-
-  def exec_advanced_search(search)
-    exec_search('Advanced', search)
-  end
-
-  # Get the next page of results.
-  def exec_next_search(search_id, page)
-    exec_with_retry do
-      res = @driver.searchMoreWithId("searchId" => search_id, "pageIndex" => page)
-      return res.searchResult.recordList, res.searchResult
-    end
-  end
-
-  def exec_with_retry(&block)
-    tries = 5
-
-    begin
-      yield
-
-    rescue => e
-
-      logger.warn "Exception: #{e.message}"
-      sleep 0.1
-
-      if tries > 0
-        tries -= 1
-        logger.debug "#{$$} retrying, tries left: #{tries}"
-        retry
-      end
-
-      raise NetsuiteException.new(e)
-    end
-  end
-
-  def fetch_remaining_records!(records, res)
-    unless res && res.status.xmlattr_isSuccess
-      return []
-    end
-
-    if res.totalPages > 1
-      while res.pageIndex < res.totalPages
-        next_records, res = exec_next_search(res.searchId, res.pageIndex+1)
-        records += next_records
-      end
-    end
-  end
-
-  def constantize(klass)
-    klass.constantize
-
-    rescue NameError
-      "NetSuite::SOAP::#{klass}".constantize
-  end
 end
