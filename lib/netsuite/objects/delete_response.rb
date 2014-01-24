@@ -1,49 +1,13 @@
 module NetSuite
 
 class DeleteResponse
-  NOT_FOUND = "RCRD_DSNT_EXIST"
+  extend Forwardable
 
-  def success?
-    status.xmlattr_isSuccess
-  end
+  def_delegators :status, :success?, :code, :message, :dup_item?, :dup_rcrd?,
+    :dup_entity?, :dup_vendor_name?, :rcrd_type_reqd?, :user_error?,
+    :duplicate?
 
-  def internal_id
-    base_ref.xmlattr_internalId
-  end
-
-  def external_id
-    base_ref.xmlattr_externalId
-  end
-
-  def type
-    base_ref.xmlattr_type
-  end
-
-  def code
-    status_detail.code
-  end
-
-  def message
-    status_detail.message
-  end
-
-  def not_found?
-    code == NOT_FOUND
-  end
-
-  private
-
-  def status
-    writeResponse.status
-  end
-
-  def base_ref
-    writeResponse.baseRef
-  end
-
-  def status_detail
-    status.statusDetail[0]
-  end
+  def_delegators :baseRef, :internal_id, :external_id, :type
 end
 
 end

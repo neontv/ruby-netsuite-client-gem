@@ -8,6 +8,7 @@ require 'netsuite/default'
 require 'netsuite/defaultDriver'
 require 'netsuite/defaultMappingRegistry'
 require 'netsuite/NetSuiteServiceClient'
+require 'netsuite/error'
 require 'netsuite/client'
 
 module NetSuite
@@ -16,6 +17,7 @@ module NetSuite
   end
 
   autoload :SearchResponseMethods, 'netsuite/objects/search_response_methods'
+  autoload :MethodInflector, 'netsuite/objects/method_inflector'
 end
 
 Dir[File.dirname(__FILE__) + '/netsuite/objects/*.rb'].each do |file|

@@ -1,20 +1,7 @@
 module NetSuite
 
 class Record
-  def method_missing(method, *args, &block)
-    if %i(internal_id external_id internal_id= external_id=).include?(method)
-      method = ('xmlattr_' + method.to_s.camelize(:lower)).to_sym
-    else
-      method = method[8..-1] if method.to_s.starts_with?('xmlattr_')
-      method = 'is_' + method.to_s[0..-2] if method.to_s.ends_with?('?')
-      method = method.to_s.camelize(:lower).to_sym
-    end
-    if self.class.instance_methods(false).include?(method)
-      send method, *args, &block
-    else
-      super
-    end
-  end
+  include MethodInflector
 
   class << self
     def client
@@ -39,7 +26,7 @@ class Record
     end
 
     def find_by_id(ids)
-      ref = ::RecordRef.new
+      ref = RecordRef.new
       ref.xmlattr_type = type
       ref.xmlattr_externalId = ids[:external]
       ref.xmlattr_internalId = ids[:internal]
@@ -65,8 +52,23 @@ class Record
       client.search_next(search, page_index)
     end
 
-    def delete_list(records)
-      client.delete_list(records.map { |record| record.ref })
+    def delete(*records)
+      client.delete_list(records.flatten.map { |record| record.ref })
+    end
+
+    def deleted(op, val)
+      op = ('NetSuite::SearchDateFieldOperator::' + op.to_s.camelize).constantize
+      val = ('NetSuite::SearchDate::' + val.to_s.camelize).constantize
+      search_value = SearchDateField.new
+      search_value.xmlattr_operator = op
+      search_value.predefinedSearchValue = val
+
+      search_type = SearchEnumMultiSelectField.new
+      search_type.xmlattr_operator = SearchEnumMultiSelectFieldOperator::AnyOf
+      search_type.searchValue = type
+
+      get_deleted_filter = GetDeletedFilter.new(search_value, search_type)
+      client.get_deleted(get_deleted_filter)
     end
   end
 
@@ -86,16 +88,28 @@ class Record
     client.delete(ref)
   end
 
-  def load
-    self.class.find_by_internal_id(internal_id)
-  end
-
   def client
     self.class.client
   end
 
   def type
     self.class.type
+  end
+
+  def load
+    return self if loaded?
+
+    record = by_internal_id || by_external_id or raise NotFoundError
+
+    record.getters.each do |getter|
+      send :"#{getter}=", record.send(getter)
+    end
+    @loaded = true
+    self
+  end
+
+  def loaded?
+    !!@loaded
   end
 
   def ref
@@ -105,6 +119,24 @@ class Record
                ref.xmlattr_internalId = internal_id
                ref
              end
+  end
+
+  def setters
+    public_methods(false).grep(/=$/)
+  end
+
+  def getters
+    setters.map(&:to_s).map(&:chop).map(&:to_sym)
+  end
+
+  private
+
+  def by_internal_id
+    self.class.find_by_internal_id(internal_id) if internal_id
+  end
+
+  def by_external_id
+    self.class.find_by_external_id(external_id) if external_id
   end
 end
 

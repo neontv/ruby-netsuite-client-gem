@@ -162,6 +162,10 @@ class Client
     search(search_record) +
       (@res.searchResult.totalPages-1).times.map { |page_index| search_next }
   end
+
+  def get_deleted(get_deleted_filter)
+    @driver.getDeleted(GetDeletedRequest.new(get_deleted_filter))
+  end
 end
 
 end
