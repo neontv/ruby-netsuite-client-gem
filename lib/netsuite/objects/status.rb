@@ -51,7 +51,7 @@ class Status
   private
 
   def status_detail
-    status.statusDetail[0]
+    statusDetail[0]
   end
 end
 

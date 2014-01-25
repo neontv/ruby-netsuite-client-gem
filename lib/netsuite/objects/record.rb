@@ -52,6 +52,38 @@ class Record
       client.search_next(search, page_index)
     end
 
+    def search_by(*args)
+      if args.first.is_a?(Hash)
+        key, value = args.first.flatten
+        op = :is
+      end
+      if args.size == 3
+        key, op, value = args
+      end
+
+      search = basic_search_class.new
+      search.send("#{key}=", search_class(value).new)
+      search.send(key).xmlattr_operator = search_operator(op, value)
+      search.send(key).searchValue = value
+
+      search(search)
+    end
+
+    def search_class(value)
+      case value
+      when String
+        SearchStringField
+      when Fixnum
+        SearchLongField
+      end
+    end
+
+    def search_operator(op, value)
+      operator_constant_name = op.to_s.camelize
+      operator_class_name = search_class(value).to_s + "Operator"
+      "#{operator_class_name}::#{operator_constant_name}".constantize
+    end
+
     def delete(*records)
       client.delete_list(records.flatten.map { |record| record.ref })
     end
@@ -99,13 +131,21 @@ class Record
   def load
     return self if loaded?
 
-    record = by_internal_id || by_external_id or raise NotFoundError
+    record = by_internal_id || by_external_id or raise_not_found_error
 
     record.getters.each do |getter|
       send :"#{getter}=", record.send(getter)
     end
     @loaded = true
     self
+  end
+
+  def raise_not_found_error
+    raise NotFoundError, not_found_error_message
+  end
+
+  def not_found_error_message
+    "type: #{type}, internal_id: #{internal_id}, external_id: #{external_id}"
   end
 
   def loaded?
