@@ -1,6 +1,14 @@
 module NetSuite
 
 module SearchResponseMethods
+  include Enumerable
+
+  def each
+    records.each do |record|
+      yield record if block_given?
+    end
+  end
+
   def success?
     status.xmlattr_isSuccess
   end
@@ -11,10 +19,6 @@ module SearchResponseMethods
 
   def page_size
     searchResult.pageSize
-  end
-
-  def records
-    searchResult.recordList
   end
 
   def id
@@ -37,6 +41,10 @@ module SearchResponseMethods
 
   def status
     searchResult.status
+  end
+
+  def records
+    searchResult.recordList
   end
 end
 
