@@ -1,9 +1,10 @@
 require 'spec_helper'
 
-describe NonInventorySaleItem do
+describe CashSale do
+  let(:model) { CashSale.new }
+
   describe '.basic_search_class' do
     subject { described_class.basic_search_class }
-    it { should eq ItemSearchBasic }
+    it { should be NetSuite::TransactionSearchBasic }
   end
 end
-

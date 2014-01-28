@@ -124,28 +124,15 @@ class Record
     self.class.client
   end
 
-  def type
-    self.class.type
-  end
-
   def load
     return self if loaded?
 
-    record = by_internal_id || by_external_id or raise_not_found_error
-
+    record = find_by_id
     record.getters.each do |getter|
       send :"#{getter}=", record.send(getter)
     end
     @loaded = true
     self
-  end
-
-  def raise_not_found_error
-    raise NotFoundError, not_found_error_message
-  end
-
-  def not_found_error_message
-    "type: #{type}, internal_id: #{internal_id}, external_id: #{external_id}"
   end
 
   def loaded?
@@ -171,12 +158,28 @@ class Record
 
   private
 
+  def find_by_id
+    by_internal_id || by_external_id or raise_not_found_error
+  end
+
   def by_internal_id
     self.class.find_by_internal_id(internal_id) if internal_id
   end
 
   def by_external_id
     self.class.find_by_external_id(external_id) if external_id
+  end
+
+  def raise_not_found_error
+    raise NotFoundError, not_found_error_message
+  end
+
+  def not_found_error_message
+    "type: #{type}, internal_id: #{internal_id}, external_id: #{external_id}"
+  end
+
+  def type
+    self.class.type
   end
 end
 

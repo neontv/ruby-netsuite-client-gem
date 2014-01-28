@@ -41,7 +41,8 @@ class Client
   end
 
   def initialize(config = {})
-    @driver = NetSuitePortType.new(config[:endpoint_url] || NetSuitePortType::DefaultEndpointUrl)
+    @driver = NetSuitePortType.new(config[:endpoint_url] ||
+                                   NetSuitePortType::DefaultEndpointUrl)
 
     if config[:role]
       role = {:xmlattr_internalId => config[:role]}
@@ -59,20 +60,6 @@ class Client
 
   def debug=(debug)
     @driver.wiredump_dev = $stderr if debug
-  end
-
-  def find_by_internal_ids(klass, ids)
-    basic = klass.new
-
-    basic.internalId = SearchMultiSelectField.new
-    basic.internalId.xmlattr_operator = SearchMultiSelectFieldOperator::AnyOf
-    basic.internalId.searchValue = ids.map do |id|
-      record = RecordRef.new
-      record.xmlattr_internalId = id
-      record
-    end
-
-    full_basic_search(basic)
   end
 
   # Low level commands
@@ -98,45 +85,24 @@ class Client
     @driver.add(AddRequest.new(record))
   end
 
-  # Only supports equality for integers and strings for now.
-  def find_by(klass, name, value)
-    basic = klass.new
-
-    if value.is_a?(Fixnum)
-      @ref = basic.send("#{name}=".to_sym, SearchLongField.new)
-      @ref.xmlattr_operator = SearchLongFieldOperator::EqualTo
-    else
-      @ref = basic.send("#{name}=".to_sym, SearchStringField.new)
-      @ref.xmlattr_operator = SearchStringFieldOperator::Is
-    end
-
-    @ref.searchValue = value
-
-    full_basic_search(basic)
-  end
-
   def add_list(list)
-    @driver.addList(AddListRequest.new(list)).writeResponseList
+    @driver.addList(AddListRequest.new(list))
   end
 
   def update(ref)
-    @driver.update(UpdateRequest.new(ref)).writeResponse
+    @driver.update(UpdateRequest.new(ref))
   end
 
   def update_list(refs)
-    @driver.updateList(UpdateListRequest.new(refs)).writeResponseList
+    @driver.updateList(UpdateListRequest.new(refs))
   end
 
   def upsert(record)
-    @driver.upsert(UpsertRequest.new(record)).writeResponse
+    @driver.upsert(UpsertRequest.new(record))
   end
 
   def upsert_list(refs)
-    @driver.upsertList(UpsertListRequest.new(refs)).writeResponseList
-  end
-
-  def typify(record)
-    record.class.to_s.split('::').last.sub(/^(\w)/) {|s|$1.downcase}
+    @driver.upsertList(UpsertListRequest.new(refs))
   end
 
   def delete(ref)
