@@ -2,6 +2,9 @@ module NetSuite
 
 module SearchResponseMethods
   include Enumerable
+  extend Forwardable
+
+  def_delegators :records, :[]
 
   def each
     records.each do |record|
@@ -35,6 +38,9 @@ module SearchResponseMethods
 
   def has_more?
     page_index < total_pages
+  end
+
+  def next
   end
 
   private

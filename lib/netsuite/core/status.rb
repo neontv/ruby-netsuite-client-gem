@@ -7,6 +7,7 @@ class Status
   DUP_VENDOR_NAME = 'DUP_VENDOR_NAME'
   RCRD_TYPE_REQD = 'RCRD_TYPE_REQD'
   USER_ERROR = 'USER_ERROR'
+  MAX_RCRDS_EXCEEDED = 'MAX_RCRDS_EXCEEDED'
 
   def success?
     xmlattr_isSuccess
@@ -44,6 +45,10 @@ class Status
     code == USER_ERROR
   end
 
+  def max_rcrds_exceeded?
+    code == MAX_RCRDS_EXCEEDED
+  end
+
   def duplicate?
     dup_item? || dup_rcrd? || dup_entity? || dup_vendor_name?
   end
@@ -51,7 +56,7 @@ class Status
   private
 
   def status_detail
-    statusDetail[0]
+    statusDetail[0] if statusDetail
   end
 end
 

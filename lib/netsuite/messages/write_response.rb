@@ -7,7 +7,9 @@ class WriteResponse
     :dup_entity?, :dup_vendor_name?, :rcrd_type_reqd?, :user_error?,
     :duplicate?
 
-  def_delegators :baseRef, :internal_id, :external_id, :type
+  alias_method :ref, :baseRef
+
+  def_delegators :ref, :internal_id, :external_id, :type
 end
 
 end

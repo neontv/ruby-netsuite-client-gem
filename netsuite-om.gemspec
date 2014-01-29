@@ -21,4 +21,5 @@ Gem::Specification.new do |s|
 #  s.test_files = ["test/netsuite_test.rb", "test/test_helper.rb"]
 
   s.add_dependency 'soap4r-ruby1.9'
+  s.add_dependency 'activesupport'#, '~> 3..0'
 end

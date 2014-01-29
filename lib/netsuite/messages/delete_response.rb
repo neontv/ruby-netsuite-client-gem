@@ -3,11 +3,9 @@ module NetSuite
 class DeleteResponse
   extend Forwardable
 
-  def_delegators :status, :success?, :code, :message, :dup_item?, :dup_rcrd?,
-    :dup_entity?, :dup_vendor_name?, :rcrd_type_reqd?, :user_error?,
-    :duplicate?
+  alias_method :response, :writeResponse
 
-  def_delegators :baseRef, :internal_id, :external_id, :type
+  def_delegators :response, :status, :ref
 end
 
 end

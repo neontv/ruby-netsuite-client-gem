@@ -126,10 +126,9 @@ describe Record do
 
   describe '#ref' do
     subject { model.ref }
-    before { model.stub(:type) { :type } }
 
     it { should be_a RecordRef }
-    its(:type) { should eq :type }
+    its(:type) { should eq "record" }
     its(:internal_id) { should eq model.internal_id }
   end
 
@@ -145,6 +144,62 @@ describe Record do
     subject { model.getters }
     it do
       should =~ %i(foo bar nullFieldList xmlattr_externalId xmlattr_internalId)
+    end
+  end
+
+  describe '.delete' do
+    subject { described_class.delete(objects) }
+
+    let(:ids) { [10, 20] }
+
+    let(:recs) do
+      ids.map do |id|
+        rec = Record.new
+        rec.internal_id = id
+        rec
+      end
+    end
+
+    let(:refs) do
+      ids.map do |id|
+        ref = RecordRef.new
+        ref.internal_id = id
+        ref.type = 'record'
+        ref
+      end
+    end
+
+    context 'when internal ids given' do
+      let(:objects) { ids }
+
+      it do
+        described_class.client.should_receive(:delete_list) do |args|
+          args == refs
+        end
+        subject
+      end
+    end
+
+    context 'when Records given' do
+      let(:objects) { recs }
+
+      it do
+        described_class.client.should_receive(:delete_list) do |args|
+          args == refs
+        end
+        subject
+      end
+    end
+
+    context 'when Refs given' do
+      let(:objects) { refs }
+
+      it do
+        described_class.client.should_receive(:delete_list) do |args|
+          args == refs
+        end
+        subject
+      end
     end
   end
 end

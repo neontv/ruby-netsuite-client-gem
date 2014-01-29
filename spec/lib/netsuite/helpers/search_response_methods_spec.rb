@@ -76,4 +76,10 @@ describe SearchResponseMethods do
       it { should be_false }
     end
   end
+
+  describe ":[]" do
+    subject { response[3] }
+    before { response.stub(:records) { [5,6,7,8,9] } }
+    it { should eq 8 }
+  end
 end

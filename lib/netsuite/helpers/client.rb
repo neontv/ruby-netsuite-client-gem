@@ -59,7 +59,7 @@ class Client
   end
 
   def debug=(debug)
-    @driver.wiredump_dev = $stderr if debug
+    @driver.wiredump_dev = ($stderr if debug)
   end
 
   # Low level commands

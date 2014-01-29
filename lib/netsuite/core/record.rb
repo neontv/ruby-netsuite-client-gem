@@ -25,12 +25,8 @@ class Record
       find_by_id(external: id)
     end
 
-    def find_by_id(ids)
-      ref = RecordRef.new
-      ref.xmlattr_type = type
-      ref.xmlattr_externalId = ids[:external]
-      ref.xmlattr_internalId = ids[:internal]
-      client.get(ref).record
+    def find_by_id(args)
+      client.get(ref(args)).record
     end
 
     def basic_search_class
@@ -45,6 +41,8 @@ class Record
         client.search_next(search, search.page_index + 1)
       when SearchMoreWithIdResponse
         client.search_next(search, search.page_index + 1)
+      else
+        raise "Unrecognized search:#{search}"
       end
     end
 
@@ -65,6 +63,7 @@ class Record
       search.send("#{key}=", search_class(value).new)
       search.send(key).xmlattr_operator = search_operator(op, value)
       search.send(key).searchValue = value
+      puts search
 
       search(search)
     end
@@ -84,8 +83,8 @@ class Record
       "#{operator_class_name}::#{operator_constant_name}".constantize
     end
 
-    def delete(*records)
-      client.delete_list(records.flatten.map { |record| record.ref })
+    def delete(objects)
+      client.delete_list(refs(objects))
     end
 
     def deleted(op, val)
@@ -101,6 +100,30 @@ class Record
 
       get_deleted_filter = GetDeletedFilter.new(search_value, search_type)
       client.get_deleted(get_deleted_filter)
+    end
+
+    def ref(arg)
+      ref = RecordRef.new
+      ref.type = type
+      arg = {internal_id: arg} unless arg.is_a?(Hash)
+      ref.internal_id = arg[:internal_id]
+      ref.external_id = arg[:external_id]
+      ref
+    end
+
+    private
+
+    def refs(objects)
+      objects.map do |object|
+        case object
+        when RecordRef
+          object
+        when Record
+          object.ref
+        when String, Integer
+          ref(object)
+        end
+      end
     end
   end
 
@@ -139,13 +162,12 @@ class Record
     !!@loaded
   end
 
+  def active?
+    !inactive?
+  end
+
   def ref
-    @ref ||= begin
-               ref = RecordRef.new
-               ref.xmlattr_type = type
-               ref.xmlattr_internalId = internal_id
-               ref
-             end
+    self.class.ref(internal_id)
   end
 
   def setters
