@@ -26,6 +26,10 @@ class NetSuite::Record
 
   attr_accessor :foo
   attr_accessor :bar
+
+  def initialize(foo = nil, bar = nil)
+    @foo, @bar = foo, bar
+  end
 end
 
 describe Record do
@@ -68,9 +72,23 @@ describe Record do
   describe '#delete' do
     subject { model.delete }
 
-    before { model.client.stub(:delete).with(model.ref) { result } }
-    let(:result) { double }
+    before do
+      client.stub(:delete) { result }
+      model.internal_id = 100
+    end
+    let(:result) { double success?: success }
+    let(:success) { true }
     it { should be result }
+
+    context 'when it is success' do
+      let(:success) { true }
+      it { expect { subject }.to change { model.internal_id }.to(nil) }
+    end
+
+    context 'when it is failure' do
+      let(:success) { false }
+      it { expect { subject }.to_not change { model.internal_id }.from(100) }
+    end
   end
 
   describe '#client' do
@@ -135,7 +153,7 @@ describe Record do
   describe '#setters' do
     subject { model.setters }
     it do
-      should =~ %i(foo= bar= nullFieldList=
+      should include *%i(foo= bar= nullFieldList=
                    xmlattr_externalId= xmlattr_internalId=)
     end
   end
@@ -143,7 +161,7 @@ describe Record do
   describe '#getters' do
     subject { model.getters }
     it do
-      should =~ %i(foo bar nullFieldList xmlattr_externalId xmlattr_internalId)
+      should include *%i(foo bar xmlattr_externalId xmlattr_internalId)
     end
   end
 

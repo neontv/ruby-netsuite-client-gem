@@ -1,6 +1,6 @@
 module NetSuite
 
-class DeleteResponse
+class UpdateResponse
   include ResponseMethods
 end
 

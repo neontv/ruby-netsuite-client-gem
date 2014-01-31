@@ -18,11 +18,11 @@ class Record
     end
 
     def find_by_internal_id(id)
-      find_by_id(internal: id)
+      find_by_id(internal_id: id)
     end
 
     def find_by_external_id(id)
-      find_by_id(external: id)
+      find_by_id(external_id: id)
     end
 
     def find_by_id(args)
@@ -50,41 +50,18 @@ class Record
       client.search_next(search, page_index)
     end
 
-    def search_by(*args)
-      if args.first.is_a?(Hash)
-        key, value = args.first.flatten
-        op = :is
-      end
-      if args.size == 3
-        key, op, value = args
-      end
-
-      search = basic_search_class.new
-      search.send("#{key}=", search_class(value).new)
-      search.send(key).xmlattr_operator = search_operator(op, value)
-      search.send(key).searchValue = value
-      puts search
-
-      search(search)
-    end
-
-    def search_class(value)
-      case value
-      when String
-        SearchStringField
-      when Fixnum
-        SearchLongField
-      end
-    end
-
-    def search_operator(op, value)
-      operator_constant_name = op.to_s.camelize
-      operator_class_name = search_class(value).to_s + "Operator"
-      "#{operator_class_name}::#{operator_constant_name}".constantize
+    def where(*args)
+      basic_search_class.new.where(*args)
     end
 
     def delete(objects)
+      objects = [objects] unless objects.respond_to?(:map)
       client.delete_list(refs(objects))
+    end
+
+    def update(records)
+      records = [records] unless records.respond_to?(:map)
+      client.update_list(records.to_a)
     end
 
     def deleted(op, val)
@@ -140,7 +117,11 @@ class Record
   end
 
   def delete
-    client.delete(ref)
+    res = client.delete(ref)
+    if res.success?
+      self.internal_id = nil
+    end
+    res
   end
 
   def client
@@ -164,6 +145,22 @@ class Record
 
   def active?
     !inactive?
+  end
+
+  def active=(value)
+    self.is_inactive = !value
+  end
+
+  def inactive=(value)
+    self.is_inactive = !!value
+  end
+
+  def activate
+    self.active = true
+  end
+
+  def inactivate
+    self.active = false
   end
 
   def ref

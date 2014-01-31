@@ -1,15 +1,19 @@
 module NetSuite
 
-class WriteResponse
+module ResponseMethods
   extend Forwardable
 
-  alias_method :ref, :baseRef
+  def res
+    writeResponse
+  end
+
+  def_delegators :res, :status, :ref
 
   def_delegators :status, :success?, :code, :message, :dup_item?, :dup_rcrd?,
     :dup_entity?, :dup_vendor_name?, :rcrd_type_reqd?, :user_error?,
     :duplicate?
 
-  def_delegators :baseRef, :internal_id, :external_id, :type
+  def_delegators :ref, :internal_id, :external_id, :type
 end
 
 end

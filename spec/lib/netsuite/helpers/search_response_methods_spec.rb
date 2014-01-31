@@ -9,7 +9,7 @@ describe SearchResponseMethods do
   before do
     response.stub(
       status: status,
-      searchResult: result
+      result: result
     )
   end
   let(:status) { double }
@@ -27,59 +27,24 @@ describe SearchResponseMethods do
     it { should be_true }
   end
 
-  describe '#page_index' do
-    subject { response.page_index }
-    let(:result) { double pageIndex: 123 }
-    it { should eq 123 }
-  end
-
-  describe '#page_size' do
-    subject { response.page_size }
-    let(:result) { double pageSize: 234 }
-    it { should eq 234 }
-  end
-
-  describe '#id' do
-    subject { response.id }
-    let(:result) { double searchId: 45 }
-    it { should eq 45 }
-  end
-
-  describe '#total_pages' do
-    subject { response.total_pages }
-    let(:result) { double totalPages: 56 }
-    it { should eq 56 }
-  end
-
-  describe '#total_records' do
-    subject { response.total_records }
-    let(:result) { double totalRecords: 67 }
-    it { should eq 67 }
-  end
-
-  describe '#has_more?' do
-    subject { response.has_more? }
-    let(:result) do
-      double pageIndex: page_index,
-             totalPages: total_pages
-    end
-
-    context 'when page_index < total_pages' do
-      let(:page_index) { 10 }
-      let(:total_pages) { 20 }
-      it { should be_true }
-    end
-
-    context 'when page_index = total_pages' do
-      let(:page_index) { 10 }
-      let(:total_pages) { 10 }
-      it { should be_false }
-    end
-  end
-
   describe ":[]" do
     subject { response[3] }
     before { response.stub(:records) { [5,6,7,8,9] } }
     it { should eq 8 }
+  end
+
+  describe '#next' do
+    subject { response.next }
+    before do
+      response.stub(:result) do
+        double page_index: 5
+      end
+      Record.client = double
+    end
+
+    it do
+      Record.client.should_receive(:search_next).with(response, 6)
+      subject
+    end
   end
 end

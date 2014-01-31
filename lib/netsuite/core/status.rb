@@ -8,6 +8,8 @@ class Status
   RCRD_TYPE_REQD = 'RCRD_TYPE_REQD'
   USER_ERROR = 'USER_ERROR'
   MAX_RCRDS_EXCEEDED = 'MAX_RCRDS_EXCEEDED'
+  INVALID_INTERNALID = 'INVALID_INTERNALID'
+  INVALID_FLD_VALUE = 'INVALID_FLD_VALUE'
 
   def success?
     xmlattr_isSuccess
@@ -21,32 +23,13 @@ class Status
     status_detail.message if status_detail
   end
 
-  def dup_item?
-    code == DUP_ITEM
-  end
-
-  def dup_rcrd?
-    code == DUP_RCRD
-  end
-
-  def dup_entity?
-    code == DUP_ENTITY
-  end
-
-  def dup_vendor_name?
-    code == DUP_VENDOR_NAME
-  end
-
-  def rcrd_type_reqd?
-    code == RCRD_TYPE_REQD
-  end
-
-  def user_error?
-    code == USER_ERROR
-  end
-
-  def max_rcrds_exceeded?
-    code == MAX_RCRDS_EXCEEDED
+  constants.each do |constant|
+    name = (constant.to_s.underscore + '?').to_sym
+    value = const_get(constant)
+    next unless value.is_a?(String)
+    define_method name do
+      code == value
+    end
   end
 
   def duplicate?

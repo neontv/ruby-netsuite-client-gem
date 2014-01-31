@@ -93,8 +93,8 @@ class Client
     @driver.update(UpdateRequest.new(ref))
   end
 
-  def update_list(refs)
-    @driver.updateList(UpdateListRequest.new(refs))
+  def update_list(recs)
+    @driver.updateList(UpdateListRequest.new(recs))
   end
 
   def upsert(record)

@@ -8,6 +8,7 @@ describe MethodInflector do
 
     attr_reader :fooBarBaz
     attr_reader :isCool
+    attr_reader :customFieldList
   end
 
   let(:model) { Model.new }
@@ -64,6 +65,14 @@ describe MethodInflector do
       let(:method) { :cool? }
       it do
         model.should_receive(:isCool) { result }
+        should eq result
+      end
+    end
+
+    context 'when it is a `special` method' do
+      let(:method) { :custom_fields }
+      it do
+        model.should_receive(:customFieldList) { result }
         should eq result
       end
     end
