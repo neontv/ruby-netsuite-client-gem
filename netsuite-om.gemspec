@@ -22,4 +22,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'soap4r-ruby1.9'
   s.add_dependency 'activesupport'#, '~> 3..0'
+
+  s.add_development_dependency 'simplecov'
+  s.add_development_dependency 'webmock'
 end

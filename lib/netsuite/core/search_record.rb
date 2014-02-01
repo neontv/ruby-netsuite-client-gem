@@ -2,6 +2,7 @@ module NetSuite
 
 class SearchRecord
   include Enumerable
+  extend Forwardable
 
   def each
     response.each do |result|
@@ -15,6 +16,14 @@ class SearchRecord
 
   def to_a
     response.to_a
+  end
+
+  def inactive
+    dup.send(:add, isInactive: true)
+  end
+
+  def active
+    dup.send(:add, isInactive: false)
   end
 
   def response

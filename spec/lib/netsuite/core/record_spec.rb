@@ -26,10 +26,6 @@ class NetSuite::Record
 
   attr_accessor :foo
   attr_accessor :bar
-
-  def initialize(foo = nil, bar = nil)
-    @foo, @bar = foo, bar
-  end
 end
 
 describe Record do
@@ -64,9 +60,21 @@ describe Record do
   describe '#update' do
     subject { model.update }
 
-    before { model.client.stub(:update).with(model) { result } }
-    let(:result) { double }
-    it { should be result }
+    before do
+      model.client.stub(:update).with(model) { result }
+    end
+    let(:result) { double success?: success }
+    let(:success) { true }
+
+    context 'when update successful' do
+      let(:success) { true }
+      it { should be model }
+    end
+
+    context 'when update unsuccessful' do
+      let(:success) { false }
+      it { should be result }
+    end
   end
 
   describe '#delete' do

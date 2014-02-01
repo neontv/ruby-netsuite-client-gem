@@ -51,7 +51,19 @@ class Record
     end
 
     def where(*args)
-      basic_search_class.new.where(*args)
+      search.where(*args)
+    end
+
+    def all
+      search.response
+    end
+
+    def inactive
+      search.inactive
+    end
+
+    def active
+      search.active
     end
 
     def delete(objects)
@@ -90,6 +102,10 @@ class Record
 
     private
 
+    def search
+      basic_search_class.new
+    end
+
     def refs(objects)
       objects.map do |object|
         case object
@@ -113,7 +129,8 @@ class Record
   end
 
   def update
-    client.update(self)
+    res = client.update(self)
+    res.success? ? self : res
   end
 
   def delete
@@ -157,10 +174,12 @@ class Record
 
   def activate
     self.active = true
+    self
   end
 
   def inactivate
     self.active = false
+    self
   end
 
   def ref

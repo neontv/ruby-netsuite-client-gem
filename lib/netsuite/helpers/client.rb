@@ -119,7 +119,7 @@ class Client
 
   def search_next(search_response, page_index = search.page_index + 1)
     @driver.searchMoreWithId(
-      searchId: search_response.id,
+      searchId: search_response.search_id,
       pageIndex: page_index
     )
   end
